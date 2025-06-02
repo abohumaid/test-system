@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <title>برنامج شركة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f2f2f2;
+            color: #333;
+            direction: rtl;
+            padding: 20px;
+        }
+        h2, h3 {
+            color: #006699;
+        }
+        label {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        input, select, button {
+            padding: 8px;
+            margin-top: 5px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 18px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #006699;
+            color: white;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+    </style>
+</head>
+<body>
+    <h3>Eng.Ahmed</h3>
+    <h2>بيانات العميل</h2>
+    <label>اسم العميل: <input type="text" id="name"></label>
+    <label>رقم الهاتف: <input type="text" id="phone"></label><br>
+    <label>رقم هاتف آخر: <input type="text" id="otherPhone"></label>
+    <label>المحافظة: 
+        <select id="governorate" onchange="updateRegions()" oninput="filterOptions('governorate')">
+            <option value="">اختر المحافظة</option>
+            <option value="القاهرة">القاهرة</option>
+            <option value="الجيزة">الجيزة</option>
+        </select><br>
+    </label>
+    <label>المنطقة: 
+        <select id="region" oninput="filterOptions('region')">
+            <option value="">اختر المنطقة</option>
+        </select>
+    </label>
+<div class="fixed-buttons">
+    <button onclick="toggleInquiry()">استفسارات</button>
+    <button onclick="toggleComplaint()">المشاكل</button>
+</div>
+    <div id="inquirySection" class="hidden">
+        <label>نوع الاستفسار:
+            <select id="inquiryType" onchange="updateInquiryNames()" oninput="filterOptions('inquiryType')">
+                <option value="">اختر نوع الاستفسار</option>
+                <option value="استفسار عام">استفسار عام</option>
+                <option value="استفسار خاص">استفسار خاص</option>
+            </select>
+        </label>
+        <label>اسم الاستفسار:
+            <select id="inquiryName"  oninput="filterOptions('inquiryName')">
+                <option value="">اختر الاسم</option>
+            </select><br>
+        </label>
+        <label>شرح الاستفسار: <input type="text" id="inquiryDetails"></label>
+        <label>تاريخ الاستفسار: <input type="date" id="inquiryDate"></label><br>
+        <label>اسم الموظف: <input type="text" id="employeeName"></label>
+    </div>
+
+    <div id="complaintSection" class="hidden">
+        <label>نوع الشكوى:
+            <select id="complaintType" onchange="updateComplaintNames()"  oninput="filterOptions('complaintType')">
+                <option value="">اختر نوع الشكوى</option>
+                <option value="شكوى عامة">شكوى عامة</option>
+                <option value="شكوى خاصة">شكوى خاصة</option>
+            </select>
+        </label>
+        <label>اسم الشكوى:
+            <select id="complaintName" oninput="filterOptions('complaintName')">
+                <option value="">اختر الاسم</option>
+            </select><br>
+        </label>
+        <label>وصف الشكوى: <input type="text" id="complaintDetails"></label>
+        <label>تاريخ الشكوى: <input type="date" id="complaintDate"></label><br>
+        <label>اسم الموظف: <input type="text" id="employeeNameComplaint"></label>
+    </div>
+
+    <button onclick="saveData()">حفظ</button>
+    <button onclick="searchClient()">بحث</button>
+    <button onclick="deleteClient()">حذف</button>
+    <button onclick="clearFields()">إضافة</button>
+    <button onclick="showTable()">عرض الجدول</button>
+    <button onclick="exportToExcel()">استخراج الجدول</button>
+    <button id="importFileButton">إدخال ملف</button>
+
+
+
+    <h3>فلتر البيانات</h3>
+    <label>بحث بالاسم: <input type="text" id="filterName" oninput="filterTable()"></label>
+    <label>بحث بالتاريخ: <input type="date" id="filterDate" oninput="filterTable()"></label>
+    <label>بحث برقم الهاتف: 
+        <input type="text" id="filterPhone">
+        <button onclick="filterByPhone()">بحث</button>
+    </label>
+
+    <table id="dataTable" class="hidden">
+        <thead>
+            <tr>
+                <th>اسم العميل</th><th>رقم الهاتف</th><th>رقم آخر</th><th>المحافظة</th><th>المنطقة</th>
+                <th>نوع الاستفسار</th><th>اسم الاستفسار</th><th>شرح الاستفسار</th><th>تاريخ الاستفسار</th><th>اسم الموظف</th>
+                <th>نوع الشكوى</th><th>اسم الشكوى</th><th>وصف الشكوى</th><th>تاريخ الشكوى</th><th>اسم الموظف</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <h3 id="inquiriesHeader" class="hidden">الاستفسارات الخاصة بالعميل</h3>
+    <table id="inquiriesTable" class="hidden">
+        <thead>
+            <tr>
+                <th>نوع الاستفسار</th><th>اسم الاستفسار</th><th>شرح الاستفسار</th><th>تاريخ الاستفسار</th><th>اسم الموظف</th>
+            </tr>
+        </thead>
+        <tbody id="inquiriesBody"></tbody>
+    </table>
+
+    <h3 id="complaintsHeader" class="hidden">الشكاوى الخاصة بالعميل</h3>
+    <table id="complaintsTable" class="hidden">
+        <thead>
+            <tr>
+                <th>نوع الشكوى</th><th>اسم الشكوى</th><th>وصف الشكوى</th><th>تاريخ الشكوى</th><th>اسم الموظف</th>
+            </tr>
+        </thead>
+        <tbody id="complaintsBody"></tbody>
+    </table>
+
+    <script>
+        let clients = [];
+
+        const regionData = {
+            'القاهرة': ['مدينة نصر', 'المعادي', 'حلوان'],
+            'الجيزة': ['الدقي', 'الهرم', 'فيصل']
+        };
+
+        function updateRegions() {
+            const gov = document.getElementById('governorate').value;
+            const region = document.getElementById('region');
+            region.innerHTML = '<option value="">اختر المنطقة</option>';
+            if (regionData[gov]) {
+                regionData[gov].forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = r;
+                    region.appendChild(opt);
+                });
+            }
+        }
+
+        function toggleInquiry() {
+            document.getElementById('inquirySection').classList.remove('hidden');
+            document.getElementById('complaintSection').classList.add('hidden');
+        }
+
+        function toggleComplaint() {
+            document.getElementById('complaintSection').classList.remove('hidden');
+            document.getElementById('inquirySection').classList.add('hidden');
+        }
+
+        // Update inquiry names based on inquiryType
+        document.getElementById('inquiryType').addEventListener('change', updateInquiryNames);
+        function updateInquiryNames() {
+            const type = document.getElementById('inquiryType').value;
+            const sel = document.getElementById('inquiryName');
+            sel.innerHTML = '<option value="">اختر الاسم</option>';
+            let opts = [];
+            if (type === 'استفسار عام') opts = ['استفسار عام 1 ', 'استفسار عام 2'];
+            else if (type === 'استفسار خاص') opts = ['استفسار خاص 1', 'استفسار خاص 2'];
+            opts.forEach(n => {
+                const o = document.createElement('option');
+                o.value = n; o.textContent = n;
+                sel.appendChild(o);
+            });
+        }
+
+        // Update complaint names based on complaintType
+        document.getElementById('complaintType').addEventListener('change', updateComplaintNames);
+        function updateComplaintNames() {
+            const type = document.getElementById('complaintType').value;
+            const sel = document.getElementById('complaintName');
+            sel.innerHTML = '<option value="">اختر الاسم</option>';
+            let opts = [];
+            if (type === 'شكوى عامة') opts = ['شكوي عامة 1', 'كشوي عامة2'];
+              else if (type === 'شكوى خاصة') opts = ['شكوي خاصة 1', 'شكوي خاص 2'];;
+            opts.forEach(n => {
+                const o = document.createElement('option');
+                o.value = n; o.textContent = n;
+                sel.appendChild(o);
+            });
+        }
+
+        function saveData() {
+    // جلب القيم من الحقول
+    const inquiryType = document.getElementById('inquiryType').value.trim();
+    const inquiryName = document.getElementById('inquiryName').value.trim();
+    const inquiryDetails = document.getElementById('inquiryDetails').value.trim();
+    const inquiryDate = document.getElementById('inquiryDate').value.trim();
+    const employeeName = document.getElementById('employeeName').value.trim();
+
+    const complaintType = document.getElementById('complaintType').value.trim();
+    const complaintName = document.getElementById('complaintName').value.trim();
+    const complaintDetails = document.getElementById('complaintDetails').value.trim();
+    const complaintDate = document.getElementById('complaintDate').value.trim();
+    const employeeNameComplaint = document.getElementById('employeeNameComplaint').value.trim();
+
+    // التحقق من أن الحقول ليست كلها فاضية
+    const isInquiryFilled = inquiryType || inquiryName || inquiryDetails || inquiryDate || employeeName;
+    const isComplaintFilled = complaintType || complaintName || complaintDetails || complaintDate || employeeNameComplaint;
+
+    if (!isInquiryFilled && !isComplaintFilled) {
+        alert('يرجى إدخال بيانات في قسم الشكوى أو الاستفسار قبل الحفظ.');
+        return; // إيقاف عملية الحفظ
+    }
+
+    // حفظ البيانات
+    const d = {
+        name: document.getElementById('name').value,
+        phone: document.getElementById('phone').value,
+        otherPhone: document.getElementById('otherPhone').value,
+        governorate: document.getElementById('governorate').value,
+        region: document.getElementById('region').value,
+        inquiryType,
+        inquiryName,
+        inquiryDetails,
+        inquiryDate,
+        employeeName,
+        complaintType,
+        complaintName,
+        complaintDetails,
+        complaintDate,
+        employeeNameComplaint
+    };
+    clients.push(d);
+    alert('تم حفظ البيانات بنجاح');
+
+    // تفريغ الحقول المتعلقة بالشكوى والاستفسار فقط
+    document.getElementById('inquiryType').value = '';
+    document.getElementById('inquiryName').innerHTML = '<option value="">اختر الاسم</option>';
+    document.getElementById('inquiryDetails').value = '';
+    document.getElementById('inquiryDate').value = '';
+    document.getElementById('employeeName').value = '';
+
+    document.getElementById('complaintType').value = '';
+    document.getElementById('complaintName').innerHTML = '<option value="">اختر الاسم</option>';
+    document.getElementById('complaintDetails').value = '';
+    document.getElementById('complaintDate').value = '';
+    document.getElementById('employeeNameComplaint').value = '';
+}
+
+
+
+       function searchClient() {
+    const phone = prompt('ادخل رقم الهاتف للبحث:');
+    const client = clients.find(c => c.phone === phone);
+    if (!client) return alert('لا يوجد عميل بهذا الرقم');
+
+    // تعبئة البيانات العامة
+    document.getElementById('name').value = client.name;
+    document.getElementById('phone').value = client.phone;
+    document.getElementById('otherPhone').value = client.otherPhone;
+    document.getElementById('governorate').value = client.governorate;
+    updateRegions();
+    document.getElementById('region').value = client.region;
+
+    // تفريغ بيانات الاستفسار
+    document.getElementById('inquiryType').value = '';
+    updateInquiryNames();
+    document.getElementById('inquiryName').value = '';
+    document.getElementById('inquiryDetails').value = '';
+    document.getElementById('inquiryDate').value = '';
+    document.getElementById('employeeName').value = '';
+
+    // تفريغ بيانات الشكوى
+    document.getElementById('complaintType').value = '';
+    updateComplaintNames();
+    document.getElementById('complaintName').value = '';
+    document.getElementById('complaintDetails').value = '';
+    document.getElementById('complaintDate').value = '';
+    document.getElementById('employeeNameComplaint').value = '';
+
+    // عرض جداول الاستفسارات والشكاوى
+    const ib = document.getElementById('inquiriesBody');
+    ib.innerHTML = '';
+    clients.filter(c => c.phone === phone && c.inquiryDetails)
+        .forEach(i => {
+            ib.innerHTML += `<tr>
+                <td>${i.inquiryType}</td>
+                <td>${i.inquiryName}</td>
+                <td>${i.inquiryDetails}</td>
+                <td>${i.inquiryDate}</td>
+                <td>${i.employeeName}</td>
+            </tr>`;
+        });
+    document.getElementById('inquiriesTable').classList.remove('hidden');
+    document.getElementById('inquiriesHeader').classList.remove('hidden');
+
+    const cb = document.getElementById('complaintsBody');
+    cb.innerHTML = '';
+    clients.filter(c => c.phone === phone && c.complaintDetails)
+        .forEach(c => {
+            cb.innerHTML += `<tr>
+                <td>${c.complaintType}</td>
+                <td>${c.complaintName}</td>
+                <td>${c.complaintDetails}</td>
+                <td>${c.complaintDate}</td>
+                <td>${c.employeeNameComplaint}</td>
+            </tr>`;
+        });
+    document.getElementById('complaintsTable').classList.remove('hidden');
+    document.getElementById('complaintsHeader').classList.remove('hidden');
+}
+
+
+        function deleteClient() {
+            const phone = prompt('ادخل رقم الهاتف للحذف:');
+            clients = clients.filter(c => c.phone !== phone);
+            alert('تم حذف العميل إذا كان موجودًا');
+        }
+
+        function showTable() {
+            const tb = document.getElementById('tableBody');
+            tb.innerHTML = '';
+            clients.forEach(c => {
+                tb.innerHTML += `<tr>
+                    <td>${c.name}</td>
+                    <td>${c.phone}</td>
+                    <td>${c.otherPhone}</td>
+                    <td>${c.governorate}</td>
+                    <td>${c.region}</td>
+                    <td>${c.inquiryType}</td>
+                    <td>${c.inquiryName}</td>
+                    <td>${c.inquiryDetails}</td>
+                    <td>${c.inquiryDate}</td>
+                    <td>${c.employeeName}</td>
+                                        <td>${c.complaintType}</td>
+                    <td>${c.complaintName}</td>
+                    <td>${c.complaintDetails}</td>
+                    <td>${c.complaintDate}</td>
+                    <td>${c.employeeNameComplaint}</td>
+                </tr>`;
+            });
+            document.getElementById('dataTable').classList.remove('hidden');
+        }
+
+        function filterTable() {
+            const nameFilter = document.getElementById('filterName').value.toLowerCase();
+            const dateFilter = document.getElementById('filterDate').value;
+            const phoneFilter = document.getElementById('filterPhone').value;
+
+            const filteredClients = clients.filter(client => {
+                const matchesName = client.name.toLowerCase().includes(nameFilter);
+                const matchesDate = !dateFilter || client.inquiryDate === dateFilter || client.complaintDate === dateFilter;
+                const matchesPhone = !phoneFilter || client.phone.includes(phoneFilter);
+
+                return matchesName && matchesDate && matchesPhone;
+            });
+
+            const tb = document.getElementById('tableBody');
+            tb.innerHTML = '';
+            filteredClients.forEach(client => {
+                tb.innerHTML += `<tr>
+                    <td>${client.name}</td>
+                    <td>${client.phone}</td>
+                    <td>${client.otherPhone}</td>
+                    <td>${client.governorate}</td>
+                    <td>${client.region}</td>
+                    <td>${client.inquiryType}</td>
+                    <td>${client.inquiryName}</td>
+                    <td>${client.inquiryDetails}</td>
+                    <td>${client.inquiryDate}</td>
+                    <td>${client.employeeName}</td>
+                    <td>${client.complaintType}</td>
+                    <td>${client.complaintName}</td>
+                    <td>${client.complaintDetails}</td>
+                    <td>${client.complaintDate}</td>
+                    <td>${client.employeeNameComplaint}</td>
+                </tr>`;
+            });
+        }
+
+        function filterByPhone() {
+            const phone = document.getElementById('filterPhone').value;
+            const filteredClients = clients.filter(client => client.phone.includes(phone));
+
+            const tb = document.getElementById('tableBody');
+            tb.innerHTML = '';
+            filteredClients.forEach(client => {
+                tb.innerHTML += `<tr>
+                    <td>${client.name}</td>
+                    <td>${client.phone}</td>
+                    <td>${client.otherPhone}</td>
+                    <td>${client.governorate}</td>
+                    <td>${client.region}</td>
+                    <td>${client.inquiryType}</td>
+                    <td>${client.inquiryName}</td>
+                    <td>${client.inquiryDetails}</td>
+                    <td>${client.inquiryDate}</td>
+                    <td>${client.employeeName}</td>
+                    <td>${client.complaintType}</td>
+                    <td>${client.complaintName}</td>
+                    <td>${client.complaintDetails}</td>
+                    <td>${client.complaintDate}</td>
+                    <td>${client.employeeNameComplaint}</td>
+                </tr>`;
+            });
+        }
+
+        function clearFields() {
+            document.getElementById('name').value = '';       
+            document.getElementById('phone').value = '';
+            document.getElementById('otherPhone').value = '';
+            document.getElementById('governorate').value = '';
+            document.getElementById('region').value = '';
+            document.getElementById('inquiryType').value = '';
+            document.getElementById('inquiryName').value = '';
+            document.getElementById('inquiryDetails').value = '';
+            document.getElementById('inquiryDate').value = '';
+            document.getElementById('employeeName').value = '';
+            document.getElementById('complaintType').value = '';
+            document.getElementById('complaintName').value = '';
+            document.getElementById('complaintDetails').value = '';
+            document.getElementById('complaintDate').value = '';
+            document.getElementById('employeeNameComplaint').value = '';
+        }
+        function filterOptions(id) {
+            const input = document.getElementById(id);
+            const datalist = document.getElementById(id === 'governorate' ? 'governorates' : 'regions');
+            const filter = input.value.toLowerCase();
+        
+            const options = datalist.getElementsByTagName('option');
+            for (let option of options) {
+                if (option.value.toLowerCase().startsWith(filter)) {
+                    option.style.display = 'block'; // عرض العناصر المتوافقة
+                } else {
+                    option.style.display = 'none'; // إخفاء العناصر غير المتوافقة
+                }
+            }
+        }
+        
+      function exportToExcel() {
+    if (clients.length === 0) {
+        alert("لا توجد بيانات لاستخراجها.");
+        return;
+    }
+
+    const worksheetData = [
+        ["اسم العميل", "رقم الهاتف", "رقم آخر", "المحافظة", "المنطقة",
+         "نوع الاستفسار", "اسم الاستفسار", "شرح الاستفسار", "تاريخ الاستفسار", "اسم الموظف",
+         "نوع الشكوى", "اسم الشكوى", "وصف الشكوى", "تاريخ الشكوى", "اسم الموظف"]
+    ];
+
+    clients.forEach(c => {
+        worksheetData.push([
+            c.name, c.phone, c.otherPhone, c.governorate, c.region,
+            c.inquiryType, c.inquiryName, c.inquiryDetails, c.inquiryDate, c.employeeName,
+            c.complaintType, c.complaintName, c.complaintDetails, c.complaintDate, c.employeeNameComplaint
+        ]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "العملاء");
+
+    const excelFile = XLSX.write(workbook, { bookType: "xlsx", type: "binary" });
+
+    function s2ab(s) {
+        const buf = new ArrayBuffer(s.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+        return buf;
+    }
+
+    const blob = new Blob([s2ab(excelFile)], { type: "application/octet-stream" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "بيانات_العملاء.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 🎉 رسالة النجاح
+    alert("✅ تم تنزيل الملف بنجاح إلى التنزيلات.");
+}
+document.getElementById("importFileButton").addEventListener("click", function() {
+    // إنشاء عنصر input لرفع الملف
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx';
+
+    // عندما يتم تحديد ملف
+    input.addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const data = event.target.result;
+
+            // قراءة ملف Excel
+            const workbook = XLSX.read(data, { type: 'binary' });
+
+            // اختيار الشيت الأول
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+            // تحويل البيانات إلى JSON
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            // إزالة رأس الجدول الأول
+            jsonData.shift();
+
+            // إضافة البيانات إلى العملاء الحاليين
+            jsonData.forEach(row => {
+                const client = {
+                    name: row[0],
+                    phone: row[1],
+                    otherPhone: row[2],
+                    governorate: row[3],
+                    region: row[4],
+                    inquiryType: row[5],
+                    inquiryName: row[6],
+                    inquiryDetails: row[7],
+                    inquiryDate: row[8],
+                    employeeName: row[9],
+                    complaintType: row[10],
+                    complaintName: row[11],
+                    complaintDetails: row[12],
+                    complaintDate: row[13],
+                    employeeNameComplaint: row[14],
+                };
+                clients.push(client); // إضافة العميل إلى قائمة العملاء
+            });
+
+            alert("تم إدخال الملف بنجاح!");
+        };
+
+        // قراءة محتويات الملف
+        reader.readAsBinaryString(file);
+    });
+
+    // تفعيل نافذة الاختيار
+    input.click();
+});
+
+function searchClientByPhone(phoneNumber) {
+    const client = clients.find(c => c.phone === phoneNumber || c.otherPhone === phoneNumber);
+    if (client) {
+        // عرض البيانات
+        alert(`العميل: ${client.name}\nرقم الهاتف: ${client.phone}\nالمحافظة: ${client.governorate}\nالمنطقة: ${client.region}`);
+    } else {
+        alert("العميل غير موجود.");
+    }
+}
+
+
+
+
+        
+    </script>
+</body>
+</html>
